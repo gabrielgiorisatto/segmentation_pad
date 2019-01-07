@@ -5,12 +5,16 @@ import tensorflow.contrib as tfcontrib
 import rgb_lab_formulation as Conv_img
 import multiprocessing
 from sklearn.model_selection import train_test_split
+import sys
+import numpy as np
+
+sys.path.append('/')
+from jedy.utils.augmentation import aug as jd
 
 
 img_shape = (256, 256, 7)
 batch_size = 8
 epochs = 5
-
 
 def _process_pathnames(fname, label_path, cspace, img_shape):
     # We map this function onto each pathname pair
@@ -34,7 +38,7 @@ def _process_pathnames(fname, label_path, cspace, img_shape):
     label_img = tf.expand_dims(label_img, axis=-1)
     # Resize Image
     if(tf.shape(label_img)[0] != 256 or tf.shape(label_img)[1] != 256):
-    	label_img = tf.image.resize_images(label_img, [img_shape[0], img_shape[1]])
+        label_img = tf.image.resize_images(label_img, [img_shape[0], img_shape[1]])
     return img, label_img
 
 
@@ -72,24 +76,14 @@ def flip_img(horizontal_flip, tr_img, label_img):
 
 # ## Assembling our transformations into our augment function
 
-def _augment(
-        img,
+def _augment(img,
         label_img,
-        resize=None,  # Resize the image to some size e.g. [256, 256]
-        scale=1,  # Scale image e.g. 1 / 255.
-        hue_delta=0,  # Adjust the hue of an RGB image by random factor
-        horizontal_flip=False,  # Random left right flip,
-        width_shift_range=0,  # Randomly translate the image horizontally
-        height_shift_range=0,
-        shape=(256, 256, 3),
-        cspace='RGB'):  # Randomly translate the image vertically
-    if hue_delta:
-        img = tf.image.random_hue(img, hue_delta)
-    img, label_img = flip_img(horizontal_flip, img, label_img)
-    img, label_img = shift_img(img, label_img, width_shift_range,
-                               height_shift_range)
-    label_img = tf.to_float(label_img) * scale
-    img = tf.to_float(img) * scale
+        cspace='RGB',
+        augment=True):  # Randomly translate the image vertically
+    seed = np.random.randint(2**32 - 1, dtype=np.int64)
+    # print('Seed = {}'.format(seed))
+    if(augment):
+        img, label_img = jd.transform_img(img, label_img)
     if (cspace == 'RGB'):
         img = img
     elif (cspace == 'HSV'):
@@ -180,34 +174,22 @@ def prepare_train_val(dataset='ISIC', cspace='RGB', img_shape=(256, 256, 3), bat
         for image_name in sorted(images):
             y_train_filenames.append(mask_dir + '/' + image_name)
     elif (dataset == 'PAD'):
-        data_path = '/pg/data/PAD_NOVO/'
-        train_dir = os.path.join(data_path, 'PAD_Dataset/train')
-        mask_dir = os.path.join(data_path, 'PAD_Dataset_GroundTruth/train')
-        images = os.listdir(train_dir)
+        data_path = 'dataset/pad_separado/train/'
+        train_dir = os.path.join(data_path, 'data')
+        mask_dir = os.path.join(data_path, 'mask')
         x_train_filenames = []
-        for image_name in sorted(images):
-            x_train_filenames.append(train_dir + '/' + image_name)
-        images = os.listdir(mask_dir)
+        for folder in os.listdir(train_dir):
+            path = os.path.join(train_dir, folder)
+            for image_name in sorted(os.listdir(path)):
+                x_train_filenames.append(path + '/' + image_name)
         y_train_filenames = []
-        for image_name in sorted(images):
-            y_train_filenames.append(mask_dir + '/' + image_name)
+        for folder in os.listdir(mask_dir):
+            path = os.path.join(mask_dir, folder)
+            for image_name in sorted(os.listdir(path)):
+                y_train_filenames.append(path + '/' + image_name)
 
     x_train_filenames, x_val_filenames, y_train_filenames, y_val_filenames = \
-                        train_test_split(x_train_filenames, y_train_filenames, test_size=0.2, random_state=42)
-
-    # img_dir = os.path.join(data_path, 'val')
-    # images = os.listdir(img_dir)
-    # total = len(images) / 2
-
-    # x_val_filenames = []
-    # y_val_filenames = []
-
-    # for image_name in images:
-    #     if 'mask' in image_name:
-    #         continue
-    #     x_val_filenames.append(img_dir + '/' + image_name)
-    #     y_val_filenames.append(img_dir + '/' + 'mask' + image_name.split('.')[0] +
-    #                            '.png')
+                        train_test_split(x_train_filenames, y_train_filenames, test_size=0.1)
 
     num_train_examples = len(x_train_filenames)
     num_val_examples = len(x_val_filenames)
@@ -216,11 +198,6 @@ def prepare_train_val(dataset='ISIC', cspace='RGB', img_shape=(256, 256, 3), bat
     print("Number of validation examples: {}".format(num_val_examples))
 
     tr_cfg = {
-    'hue_delta': 0.1,
-    'horizontal_flip': True,
-    'width_shift_range': 0.1,
-    'height_shift_range': 0.1,
-    'shape': img_shape,
     'cspace': cspace
     }
 
@@ -235,7 +212,6 @@ def prepare_train_val(dataset='ISIC', cspace='RGB', img_shape=(256, 256, 3), bat
         img_shape=img_shape)
 
     val_cfg = {
-    'shape': img_shape,
     'cspace': cspace
     }
 
@@ -252,31 +228,49 @@ def prepare_train_val(dataset='ISIC', cspace='RGB', img_shape=(256, 256, 3), bat
 
 def prepare_test(dataset='PAD', cspace='RGB', img_shape=(256, 256, 3)):
     if (dataset == 'PAD'):
-        data_path = '/pg/data/PAD_NOVO/'
-        test_dir = os.path.join(data_path, 'PAD_Dataset/test')
-        mask_dir = os.path.join(data_path, 'PAD_Dataset_GroundTruth/test')
+        data_path = 'dataset/pad_separado/test/'
+        test_dir = os.path.join(data_path, 'data')
+        mask_dir = os.path.join(data_path, 'mask')
+        x_test_filenames = []
+        for folder in os.listdir(test_dir):
+            path = os.path.join(test_dir, folder)
+            for image_name in sorted(os.listdir(path)):
+                x_test_filenames.append(path + '/' + image_name)
+        y_test_filenames = []
+        for folder in os.listdir(mask_dir):
+            path = os.path.join(mask_dir, folder)
+            for image_name in sorted(os.listdir(path)):
+                y_test_filenames.append(path + '/' + image_name)
     elif (dataset == 'ISIC_TEST'):
         data_path = '/pg/data/ISIC2017_REDUZIDO/'
         test_dir = os.path.join(data_path, 'data')
         mask_dir = os.path.join(data_path, 'mask')
+        images = os.listdir(test_dir)
+        x_test_filenames = []
+        for image_name in sorted(images):
+            x_test_filenames.append(test_dir + '/' + image_name)
+        images = os.listdir(mask_dir)
+        y_test_filenames = []
+        for image_name in sorted(images):
+            y_test_filenames.append(mask_dir + '/' + image_name.split('.')[0] + '.png')
     elif (dataset == 'ISIC'):
         data_path = 'dataset/'
         test_dir = os.path.join(data_path, 'raw/test/ISIC')
         mask_dir = os.path.join(data_path, 'expected/ISIC')
+        images = os.listdir(test_dir)
+        x_test_filenames = []
+        for image_name in sorted(images):
+            x_test_filenames.append(test_dir + '/' + image_name)
+        images = os.listdir(mask_dir)
+        y_test_filenames = []
+        for image_name in sorted(images):
+            y_test_filenames.append(mask_dir + '/' + image_name.split('.')[0] + '.png')
 
-    images = os.listdir(test_dir)
-    x_test_filenames = []
-    for image_name in sorted(images):
-        x_test_filenames.append(test_dir + '/' + image_name)
-    images = os.listdir(mask_dir)
-    y_test_filenames = []
-    for image_name in sorted(images):
-        y_test_filenames.append(mask_dir + '/' + image_name.split('.')[0] + '.png')
     num_test_examples = len(x_test_filenames)
     print("Number of testing examples: {}".format(num_test_examples))
 
     test_cfg = {
-    'shape': img_shape,
+    'augment': False,
     'cspace': cspace
     }
 
