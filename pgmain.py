@@ -6,12 +6,11 @@ mpl.rcParams['figure.figsize'] = (12, 12)
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import tensorflow as tf
-from tensorflow.python.keras import models
+from tensorflow.python.keras import models, backend as K
 import time
 from unet import unet, bce_dice_loss, dice_loss, dice_coeff
 from data import prepare_train_val, prepare_test
 import rgb_lab_formulation as Conv_img
-from keras import backend as K
 import utils
 import gc
 import os
