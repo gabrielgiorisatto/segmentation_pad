@@ -298,12 +298,12 @@ if __name__ == '__main__':
                             write_images=True,
                             it=it,
                             save_model_path='models/' + type_train + '/' + cspace + '/weights' + str(epochs) + '_' + str(it) + '_' + str(lr) + '_' + str(batch_size) + '.hdf5',)
-                    evaluate_test(model, isictest_test_ds, isictest_num_test_examples, cspace, epochs,
-                        save_model_path='models/' + cspace + '/weights' + str(epochs) + '.hdf5',
-                        ISIC='/ISICTEST')
-                    evaluate_test(model, isic_test_ds, isic_num_test_examples, cspace, epochs,
-                        save_model_path='models/' + cspace + '/weights' + str(epochs) + '.hdf5',
-                        ISIC='/ISIC')
+                    # evaluate_test(model, isictest_test_ds, isictest_num_test_examples, cspace, epochs,
+                    #     save_model_path='models/' + cspace + '/weights' + str(epochs) + '.hdf5',
+                    #     ISIC='/ISICTEST')
+                    # evaluate_test(model, isic_test_ds, isic_num_test_examples, cspace, epochs,
+                    #     save_model_path='models/' + cspace + '/weights' + str(epochs) + '.hdf5',
+                    #     ISIC='/ISIC')
             K.clear_session()
             del model, pad_test_ds
             del model, train_ds, val_ds,pad_test_ds

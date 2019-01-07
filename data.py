@@ -8,7 +8,7 @@ from sklearn.model_selection import train_test_split
 import sys
 import numpy as np
 
-sys.path.append('/')
+sys.path.append('utils/')
 from jedy.utils.augmentation import aug as jd
 
 
