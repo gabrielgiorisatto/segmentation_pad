@@ -1,8 +1,9 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib as mpl
+mpl.use('agg')
 mpl.rcParams['axes.grid'] = False
 mpl.rcParams['figure.figsize'] = (12, 12)
+import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import tensorflow as tf
 from tensorflow.python.keras import models
