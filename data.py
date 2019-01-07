@@ -9,7 +9,7 @@ import sys
 import numpy as np
 
 sys.path.append('utils/')
-from jedy.utils.augmentation import aug as jd
+from augmentation import aug as jd
 
 
 img_shape = (256, 256, 7)
