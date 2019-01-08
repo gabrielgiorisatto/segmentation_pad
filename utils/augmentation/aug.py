@@ -51,7 +51,7 @@ def transform_img (img, label, flip_left_right=True, flip_up_down=True,
     if (hue is not None):
         img = tf.image.random_hue(img, hue)
 
-    if (gamma is not None and rand() > 0.5):
+    if (gamma is not None):
         gamma_prob = tf.random_uniform([], 0.0, 1.0)
         img = tf.cond(tf.less(gamma_prob, 0.5),
                                     lambda: (tf.image.adjust_gamma(img, gamma)),
