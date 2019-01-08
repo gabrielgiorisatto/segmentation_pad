@@ -6,10 +6,11 @@ mpl.rcParams['figure.figsize'] = (12, 12)
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import tensorflow as tf
-from tensorflow.python.keras import models, backend as K
+from tensorflow.python.keras import models
 import time
 from unet import unet, bce_dice_loss, dice_loss, dice_coeff
 from data import prepare_train_val, prepare_test
+from tensorflow.python.keras import backend as K
 import rgb_lab_formulation as Conv_img
 import utils
 import gc
@@ -55,7 +56,7 @@ def train_history(epochs, cspace, history, type_train='', it=0):
     plt.legend(loc='upper right')
     plt.title('Training and Validation Loss')
 
-    fig.savefig('results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/loss.png', bbox_inches='tight')
+    fig.savefig('pos_results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/loss.png', bbox_inches='tight')
 
 # x_in and y_in are numpy arrays
 def fjaccard(x_in, y_in):
@@ -89,16 +90,15 @@ def evaluate_test(model, test_ds, num_test_examples, cspace, epochs, save_model_
 
     data_aug_iter = test_ds.make_one_shot_iterator()
     next_element = data_aug_iter.get_next()
-    # if(write_images):
-    if(not os.path.exists('results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/predict/')):
-            os.makedirs('results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/predict/')
+    if(not os.path.exists('pos_results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/predict/')):
+            os.makedirs('pos_results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/predict/')
     for j in range(num_test_examples):
         # Running next element in our graph will produce a batch of images
         batch_of_imgs, label = tf.keras.backend.get_session().run(next_element)
         img = batch_of_imgs[0]
 
         predicted_label = model.predict(batch_of_imgs)[0]
-        mpimg.imsave('results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/predict/' + str(j) + '.png', predicted_label[:,:,0])
+        mpimg.imsave('pos_results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/predict/' + str(j) + '.png', predicted_label[:,:,0])
         mask_pred = (predicted_label[:, :, 0] > 0.55).astype(int)
         label = label.astype(int)
 
@@ -113,10 +113,10 @@ def evaluate_test(model, test_ds, num_test_examples, cspace, epochs, save_model_
 
         img_rgb = img[:, :, :3]
 
-        # if(cspace == 'HSV'):
-        #     img_rgb = tf.keras.backend.get_session().run(tf.image.hsv_to_rgb(img_rgb))
-        # elif(cspace == 'LAB'):
-        #     img_rgb = tf.keras.backend.get_session().run(Conv_img.lab_to_rgb(img_rgb))
+        if(cspace == 'HSV'):
+            img_rgb = tf.keras.backend.get_session().run(tf.image.hsv_to_rgb(img_rgb))
+        elif(cspace == 'LAB'):
+            img_rgb = tf.keras.backend.get_session().run(Conv_img.lab_to_rgb(img_rgb))
 
         crf_mask = utils.dense_crf(np.array(img_rgb*255).astype(np.uint8), np.array(predicted_label[:, :, 0]).astype(np.float32))
 
@@ -156,20 +156,20 @@ def evaluate_test(model, test_ds, num_test_examples, cspace, epochs, save_model_
                         '\nDice = ' + str(crf_dice[j]))
             
             fig.savefig(
-                'results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/' + str(j) + '.png',
+                'pos_results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/' + str(j) + '.png',
                 bbox_inches='tight')
             plt.close(fig)
-            mpimg.imsave('results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/predict/' + str(j) + '.png', predicted_label[:,:,0])
+            mpimg.imsave('pos_results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/predict/' + str(j) + '.png', predicted_label[:,:,0])
             plt.close()
 
     mjccard /= num_test_examples
     score /= num_test_examples
-    np.savetxt('results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/jaccard', v_jaccard)
-    np.savetxt('results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/sensitivity', v_sensitivity)
-    np.savetxt('results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/specificity', v_specificity)
-    np.savetxt('results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/accuracy', v_accuracy)
-    np.savetxt('results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/dice', v_dice)
-    with open('results/' + type_train + cspace + '/' + str(epochs)  + '/' + str(it) + '/score','w') as f:
+    np.savetxt('pos_results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/jaccard', v_jaccard)
+    np.savetxt('pos_results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/sensitivity', v_sensitivity)
+    np.savetxt('pos_results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/specificity', v_specificity)
+    np.savetxt('pos_results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/accuracy', v_accuracy)
+    np.savetxt('pos_results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/dice', v_dice)
+    with open('pos_results/' + type_train + cspace + '/' + str(epochs)  + '/' + str(it) + '/score','w') as f:
         f.write('Score = ' + str(score) +
         '\nSensitivity = ' + str(np.mean(v_sensitivity)) +
         '\nSpecificity = ' + str(np.mean(v_specificity)) +
@@ -177,12 +177,12 @@ def evaluate_test(model, test_ds, num_test_examples, cspace, epochs, save_model_
         '\nDice = ' + str(np.mean(v_dice)) +
         '\nJaccars = ' + str(np.mean(v_jaccard)))
 
-    np.savetxt('results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/crf_jaccard', crf_jaccard)
-    np.savetxt('results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/crf_sensitivity', crf_sensitivity)
-    np.savetxt('results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/crf_specificity', crf_specificity)
-    np.savetxt('results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/crf_accuracy', crf_accuracy)
-    np.savetxt('results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/crf_dice', crf_dice)
-    with open('results/' + type_train + cspace + '/' + str(epochs)  + '/' + str(it) + '/crf_score','w') as f:
+    np.savetxt('pos_results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/crf_jaccard', crf_jaccard)
+    np.savetxt('pos_results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/crf_sensitivity', crf_sensitivity)
+    np.savetxt('pos_results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/crf_crf_specificity', crf_specificity)
+    np.savetxt('pos_results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/crf_accuracy', crf_accuracy)
+    np.savetxt('pos_results/' + type_train + cspace + '/' + str(epochs) + '/' + str(it) + '/crf_dice', crf_dice)
+    with open('pos_results/' + type_train + cspace + '/' + str(epochs)  + '/' + str(it) + '/crf_score','w') as f:
         f.write('Sensitivity = ' + str(np.mean(crf_sensitivity)) +
         '\nSpecificity = ' + str(np.mean(crf_specificity)) +
         '\nAccuracy = ' + str(np.mean(crf_accuracy)) +
@@ -193,62 +193,46 @@ def evaluate_test(model, test_ds, num_test_examples, cspace, epochs, save_model_
     print('Score = ' + str(score))
     return mjccard, score
 
-def testa_aug(test_ds):
-    data_aug_iter = test_ds.make_one_shot_iterator()
-    next_element = data_aug_iter.get_next()
-    for i in range(16):
-        batch_of_imgs, label = tf.keras.backend.get_session().run(next_element)
-        img = batch_of_imgs[0]
-        plt.subplot(4,4,i+1)
-        plt.imshow(img[:, :, :3])
-        # plt.title("Input image")
-        plt.hold(True)
-        plt.contour(label[0, :, :, 0])
-        # plt.title("Actual Mask")
-        plt.hold(False)
-    plt.show()
-
 if __name__ == '__main__':
-    epochs = 5
+    epochs = 80
+    #cspacev = ["RGB","HSV","LAB","RGB-HSV","RGB-HSV-L","RGB-HSV-LAB","RGB-SV-LAB"]
+    #img_shapev = [3,3,3,6, 7, 9, 8]
     cspacev = ["RGB"]
     img_shapev = [3]
     img_shape = (256, 256, 3)
-    type_train = 'direct_train'
+    type_train = 'direct_transfer'
     batch_size = 8
-    if type_train == 'fine_tune':
-        lr = 0.00001
-    else:
-        lr = 0.0001
+    lr = 0.0001
     i = 0
     for cspace, img_dim in zip(cspacev, img_shapev):
-        inicio = 0
-        fim = 1
-        for it in range(inicio,fim):
+        inic = 2
+        fim = 3
+        for it in range(inic,fim):
             with tf.Graph().as_default():
                 with tf.Session().as_default():
-                    # Adjust image shape
+                    #        Adjust image shape
                     imagelst = list(img_shape)
                     imagelst[2] = img_dim
                     img_shape = tuple(imagelst)
                     
                     print("Loading dataset...\n")
                     
-                    if(type_train == "direct_transfer"):
-                        dataset = 'ISIC'
-                    else:
-                        dataset = 'PAD'
+                    # if(type_train == "direct_transfer"):
+                    #     dataset = 'ISIC'
+                    # else:
+                    #     dataset = 'PAD'
                     train_ds, val_ds, num_train_examples, num_val_examples = prepare_train_val(
-                            dataset=dataset,
+                            dataset='ISIC_TEST',
                             cspace=cspace,
                             img_shape=img_shape,
-                            batch_size=1)
+                            batch_size=batch_size)
                     pad_test_ds, pad_num_test_examples = prepare_test(
                             dataset='PAD',
                             cspace=cspace,
                             img_shape=img_shape)
                     
                     print("Done. Iteration = " + str(it) + "\n")
-                    # Load Model
+            #        Load Model
                     i = i + 1
                     if(type_train == "fine_tune" or type_train == 'ISIC/fine_tune'):
                         model = models.load_model(
@@ -265,7 +249,7 @@ if __name__ == '__main__':
                             type_train=type_train, it=it, lr=lr, batch_size=batch_size)
                     
                     
-                    # Train Model
+            #        Train Model
                     history = model.fit(
                             train_ds,
                             steps_per_epoch=int(np.ceil(num_train_examples / float(batch_size))),
@@ -274,10 +258,10 @@ if __name__ == '__main__':
                             validation_steps=int(np.ceil(num_val_examples / float(batch_size))),
                             callbacks=cp)
                     
-                    # Save Results
-                    if(not os.path.exists('results/' + type_train + '/' + cspace + '/' + str(epochs) + '/' + str(it))):
-                        os.makedirs('results/' + type_train + '/' + cspace + '/' + str(epochs) + '/' + str(it))
-                    with open('results/' + type_train + '/' + cspace + '/' + str(epochs) + '/' + str(it) + '/time','w') as f:
+            #        Save Results
+                    if(not os.path.exists('pos_results/' + type_train + '/' + cspace + '/' + str(epochs) + '/' + str(it))):
+                        os.makedirs('pos_results/' + type_train + '/' + cspace + '/' + str(epochs) + '/' + str(it))
+                    with open('pos_results/' + type_train + '/' + cspace + '/' + str(epochs) + '/' + str(it) + '/time','w') as f:
                         f.write(str(time.time() - start_time))
                     train_history(
                             epochs,
@@ -286,7 +270,7 @@ if __name__ == '__main__':
                             type_train= type_train + '/',
                             it=it)
                     
-                   # Test Model
+            #        Test Model
                     evaluate_test(
                             model,
                             pad_test_ds,
@@ -294,16 +278,16 @@ if __name__ == '__main__':
                             cspace,
                             epochs,
                             type_train= type_train + '/',
-                            write_images=True,
+                            write_images=False,
                             it=it,
                             save_model_path='models/' + type_train + '/' + cspace + '/weights' + str(epochs) + '_' + str(it) + '_' + str(lr) + '_' + str(batch_size) + '.hdf5',)
-                    # evaluate_test(model, isictest_test_ds, isictest_num_test_examples, cspace, epochs,
-                    #     save_model_path='models/' + cspace + '/weights' + str(epochs) + '.hdf5',
-                    #     ISIC='/ISICTEST')
-                    # evaluate_test(model, isic_test_ds, isic_num_test_examples, cspace, epochs,
-                    #     save_model_path='models/' + cspace + '/weights' + str(epochs) + '.hdf5',
-                    #     ISIC='/ISIC')
+            #         evaluate_test(model, isictest_test_ds, isictest_num_test_examples, cspace, epochs,
+            #             save_model_path='models/' + cspace + '/weights' + str(epochs) + '.hdf5',
+            #             ISIC='/ISICTEST')
+            #         evaluate_test(model, isic_test_ds, isic_num_test_examples, cspace, epochs,
+            #             save_model_path='models/' + cspace + '/weights' + str(epochs) + '.hdf5',
+            #             ISIC='/ISIC')
             K.clear_session()
             del model, pad_test_ds
-            del model, train_ds, val_ds,pad_test_ds
+            # del model, train_ds, val_ds,pad_test_ds
             gc.collect()
