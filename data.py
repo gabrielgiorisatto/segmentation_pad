@@ -216,17 +216,19 @@ def prepare_train_val(dataset='ISIC', cspace='RGB', img_shape=(256, 256, 3), bat
         for image_name in sorted(images):
             y_train_filenames.append(mask_dir + '/' + image_name)
     elif (dataset == 'PAD'):
-        data_path = 'PAD_NOVO/'
-        train_dir = os.path.join(data_path, 'PAD_Dataset/train')
-        mask_dir = os.path.join(data_path, 'PAD_Dataset_GroundTruth/train')
-        images = os.listdir(train_dir)
+        data_path = 'dataset/pad_separado/train/'
+        train_dir = os.path.join(data_path, 'data')
+        mask_dir = os.path.join(data_path, 'mask')
         x_train_filenames = []
-        for image_name in sorted(images):
-            x_train_filenames.append(train_dir + '/' + image_name)
-        images = os.listdir(mask_dir)
+        for folder in os.listdir(train_dir):
+            path = os.path.join(train_dir, folder)
+            for image_name in sorted(os.listdir(path)):
+                x_train_filenames.append(path + '/' + image_name)
         y_train_filenames = []
-        for image_name in sorted(images):
-            y_train_filenames.append(mask_dir + '/' + image_name)
+        for folder in os.listdir(mask_dir):
+            path = os.path.join(mask_dir, folder)
+            for image_name in sorted(os.listdir(path)):
+                y_train_filenames.append(path + '/' + image_name)
 
     x_train_filenames, x_val_filenames, y_train_filenames, y_val_filenames = \
                         train_test_split(x_train_filenames, y_train_filenames, test_size=0.2, random_state=42)
