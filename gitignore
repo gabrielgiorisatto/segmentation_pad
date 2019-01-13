@@ -4,4 +4,7 @@ dataset/
 *.png
 models/
 *.pyc
+<<<<<<< HEAD
 *.zip
+=======
+>>>>>>> 2aa37d564b5a6d6bf569488594c61cf299588252
