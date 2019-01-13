@@ -197,17 +197,17 @@ if __name__ == '__main__':
     epochs = 80
     #cspacev = ["RGB","HSV","LAB","RGB-HSV","RGB-HSV-L","RGB-HSV-LAB","RGB-SV-LAB"]
     #img_shapev = [3,3,3,6, 7, 9, 8]
-    cspacev = ["RGB", "LAB", "HSV", "RGB-LAB", "RGB-HSV"]
-    img_shapev = [3,3,3,6,6]
+    cspacev = ["RGB"]
+    img_shapev = [3]
     img_shape = (256, 256, 3)
-    type_train = 'direct_transfer'
+    type_train = 'fine_tune'
     batch_size = 8
-    lr = 0.0001
+    lr = 0.00001
     i = 0
     for cspace, img_dim in zip(cspacev, img_shapev):
         inic = 0
         fim = 10
-        for it in range(inic,fim):
+        for it in [1,2,8,9]:
             with tf.Graph().as_default():
                 with tf.Session().as_default():
                     #        Adjust image shape
@@ -278,7 +278,7 @@ if __name__ == '__main__':
                             cspace,
                             epochs,
                             type_train= type_train + '/',
-                            write_images=True,
+                            write_images=False,
                             it=it,
                             save_model_path='models/' + type_train + '/' + cspace + '/weights' + str(epochs) + '_' + str(it) + '_' + str(lr) + '_' + str(batch_size) + '.hdf5',)
             #         evaluate_test(model, isictest_test_ds, isictest_num_test_examples, cspace, epochs,
