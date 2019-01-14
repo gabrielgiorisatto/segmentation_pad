@@ -207,7 +207,7 @@ if __name__ == '__main__':
     for cspace, img_dim in zip(cspacev, img_shapev):
         inic = 0
         fim = 10
-        for it in [1,2,8,9]:
+        for it in [0,3,4,5,6,7]:
             with tf.Graph().as_default():
                 with tf.Session().as_default():
                     #        Adjust image shape
